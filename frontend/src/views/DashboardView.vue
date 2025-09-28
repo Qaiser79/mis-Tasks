@@ -18,14 +18,26 @@
       </div>
     </section>
 
+    <div class="chart-container">
+        <StatusChart
+            v-if="chartData.datasets[0].data.length > 0"
+            :data="chartData"
+            :options="chartOptions"
+        />
+        <p v-else>Loading chart data...</p>
+    </div>
+
+
   </div>
 </template>
 <script>
   import axios from 'axios'
+  import StatusChart from '../components/StatusChart.vue'
   import MISCountCard from '../components/MISCountCard.vue'
+  import { ref, onMounted } from 'vue'
   /*import Sidebar from '../components/Sidebar.vue'*/
   export default {
-    components: { MISCountCard},
+    components: { MISCountCard,StatusChart},
     data() {
     return {
       misCount: 0,
@@ -37,8 +49,28 @@
         'UAT-USER': 0,
         Cancelled: 0
       },
+      chartData: {
+      labels: [],
+      datasets: [{
+        data: [],
+        backgroundColor: ['#28a745', '#fd7e14', '#6f42c1', '#20c997', '#6c757d', '#dc3545']
+      }]
+      },
+        chartOptions: {
+            responsive: true,
+                plugins: {
+                    legend: {
+                    position: 'bottom'
+                    },
+                    title: {
+                    display: true,
+                    text: 'MIS Status Breakdown'
+                    }
+                }
+        }
+
     }
-  },
+    },
   methods: {
     async refreshMISCount(){
       const totalRes= await axios.get('http://127.0.0.1:8000/mis/count')
@@ -53,6 +85,10 @@
 
         
       }
+
+      this.chartData.labels = Object.keys(this.statusCounts)
+      this.chartData.datasets[0].data = Object.values(this.statusCounts)
+
       console.log('Updated statusCounts:', this.statusCounts)
     }
 
@@ -106,6 +142,11 @@
   flex-wrap: wrap;
   justify-content: flex-start;
   gap: 16px;
+}
+
+.chart-container {
+  max-width: 350px;
+  margin: 0 auto 40px;
 }
 
 </style>
