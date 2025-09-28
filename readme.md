@@ -17,5 +17,4 @@ A full-stack MIS dashboard built with **FastAPI** (backend) and **Vue.js** (fron
 - Paginated table view
 - Responsive layout and scoped styling
 
-## 📦 Project Structure
 
