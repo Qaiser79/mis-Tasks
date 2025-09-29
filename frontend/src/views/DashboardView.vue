@@ -24,7 +24,16 @@
             :data="chartData"
             :options="chartOptions"
         />
+
+        <MonthlyChart 
+        v-if="monthlyChartData.datasets[0].data.length > 0"
+        :data="monthlyChartData"
+        :options="monthlyChartOptions"
+      />
+
         <p v-else>Loading chart data...</p>
+    
+      
     </div>
 
 
@@ -34,10 +43,11 @@
   import axios from 'axios'
   import StatusChart from '../components/StatusChart.vue'
   import MISCountCard from '../components/MISCountCard.vue'
+  import MonthlyChart from '../components/MonthlyChart.vue'
   import { ref, onMounted } from 'vue'
   /*import Sidebar from '../components/Sidebar.vue'*/
   export default {
-    components: { MISCountCard,StatusChart},
+    components: { MISCountCard,StatusChart, MonthlyChart},
     data() {
     return {
       misCount: 0,
@@ -67,6 +77,22 @@
                     text: 'MIS Status Breakdown'
                     }
                 }
+        },
+
+        monthlyChartData: {
+          labels: [],
+          datasets: [{
+            label: 'Monthly MIS Records',
+            data: [],
+            backgroundColor: '#0d6efd'
+          }]
+        },
+        monthlyChartOptions: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Monthly MIS Trends' }
+          }
         }
 
     }
@@ -90,13 +116,22 @@
       this.chartData.datasets[0].data = Object.values(this.statusCounts)
 
       console.log('Updated statusCounts:', this.statusCounts)
+    },
+
+    async fetchMonthlyChart(){
+      const res = await axios.get('http://localhost:8000/mis/monthly-count')
+      const data = res.data
+
+      this.monthlyChartData.labels=Object.keys(data)
+      this.monthlyChartData.datasets[0].data= Object.values(data)
     }
 
 
 
   },
   mounted() {
-    this.refreshMISCount()
+    this.refreshMISCount();
+    this.fetchMonthlyChart();
   }
 }
 </script>
@@ -145,8 +180,25 @@
 }
 
 .chart-container {
-  max-width: 350px;
-  margin: 0 auto 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 32px;
+  margin: 40px 0;
+  padding: 0 20px;
+}
+
+.chart-container canvas {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+}
+
+.chart-container h2 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  color: #343a40;
+  text-align: center;
 }
 
 </style>

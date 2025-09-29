@@ -3,9 +3,10 @@ from app.database import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, Depends, Path
-from sqlalchemy import text
+from sqlalchemy import text, extract
 from app import crud, schemas,models
 from sqlalchemy import func
+from collections import defaultdict
 
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -92,3 +93,45 @@ def delete_mis_record(mis_id: int= Path(...), db: Session=Depends(get_db)):
 @app.get("/resources", response_model=list[schemas.TeamOut])
 def get_teams(db: Session = Depends(get_db)):
     return db.query(models.Team).all()
+
+@app.get("/mis/monthly-count")
+def get_monthly_count(db: Session = Depends(get_db)):
+    monthly_count= defaultdict(int)
+    records= db.query(models.MIS_Table.arrival_date).all()
+    for record in records:
+        if record.arrival_date:
+            month= record.arrival_date.strftime('%B')
+            monthly_count[month]+=1
+    
+    month_order = ['January', 'February', 'March', 'April', 'May', 'June',
+                   'July', 'August', 'September', 'October', 'November', 'December']
+    sorted_counts ={month: monthly_count.get(month,0) for month in month_order}
+
+    return sorted_counts
+
+@app.get("/mis/by-resource")
+def get_resource_mis(month: str, db: Session=Depends(get_db)):
+    resource_count= defaultdict(int)
+
+    query=db.query(models.MIS_Table.resource, models.MIS_Table.assigned_date)
+    if month: 
+        query= query.filter(extract('month', models.MIS_Table.assigned_date)==int(month))
+    records= query.all()
+    for resource, assigned_date in records:
+        if resource:
+            resource_count[resource]+=1
+    return dict(resource_count)
+
+@app.get("/mis/by_type")
+def get_type_mis(month: int, db: Session=Depends(get_db)):
+    type_count= defaultdict(int)
+    query= db.query(models.MIS_Table.mis_type, models.MIS_Table.arrival_date)
+
+    if month:
+        query= query.filter(extract('month', models.MIS_Table.arrival_date)==int(month))
+    records= query.all()
+
+    for mis_type, arrival_date in records:
+        if mis_type:
+            type_count[mis_type]+=1
+    return dict(type_count)
