@@ -27,15 +27,20 @@
   
   <style scoped>
 .card {
+  width: 100%;
+  height: 160px;
+  box-sizing: border-box; /* ✅ Prevents padding from breaking layout */
   display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  padding: 16px 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  color: white;
-  width: 240px;
-  margin: 10px;
-  transition: transform 0.2s ease;
+  padding: 16px;
+  margin: 0;               /* ✅ Ensures no extra spacing conflicts */
+  border-radius: 8px;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
 
 .card:hover {
@@ -43,19 +48,18 @@
 }
 
 .icon {
-  font-size: 2rem;
-  margin-right: 16px;
+  font-size: 1.6rem;
+  margin-bottom: 8px;
 }
 
 .content h3 {
-  margin: 0;
   font-size: 1rem;
-  font-weight: 500;
+  margin-bottom: 4px;
 }
 
 .content p {
-  margin: 4px 0 0;
-  font-size: 1.6rem;
+  font-size: 1.2rem;
+  margin: 0;
   font-weight: bold;
 }
 
