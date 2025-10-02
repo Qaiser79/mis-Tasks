@@ -122,7 +122,7 @@ def get_resource_mis(month: str, db: Session=Depends(get_db)):
             resource_count[resource]+=1
     return dict(resource_count)
 
-@app.get("/mis/by_type")
+'''@app.get("/mis/by_type")
 def get_type_mis(month: int, db: Session=Depends(get_db)):
     type_count= defaultdict(int)
     query= db.query(models.MIS_Table.mis_type, models.MIS_Table.arrival_date)
@@ -134,4 +134,17 @@ def get_type_mis(month: int, db: Session=Depends(get_db)):
     for mis_type, arrival_date in records:
         if mis_type:
             type_count[mis_type]+=1
-    return dict(type_count)
+    return dict(type_count)'''
+@app.get("/mis/type_daily_trend")
+def get_type_daily_trend(month: int, db: Session=Depends(get_db)):
+    daily_trend=defaultdict(lambda: defaultdict(int))
+    query= db.query(models.MIS_Table.mis_type, models.MIS_Table.arrival_date)
+    query= query.filter(extract('month',models.MIS_Table.arrival_date)==month)
+    records=query.all()
+
+    for mis_type, arrival_date in records:
+        if mis_type and arrival_date:
+            day_str = arrival_date.strftime('%Y-%m-%d')
+            daily_trend[mis_type][day_str]+=1
+
+    return daily_trend

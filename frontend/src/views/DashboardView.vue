@@ -39,21 +39,29 @@
 
       <div class="month-selector">
           <label for="month">Select Month (default: September):</label>
-            <select id="month" v-model="selectedMonth" @change="fetchResourceChart(selectedMonth)">
+            <select id="month" v-model="selectedMonth" >
               <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
                 {{ name }}
               </option>
             </select>
-    </div>
+      </div>
 
 
-      <div class="chart-box">
-        <MonthlyChart
-          v-if="resourceChartData.datasets[0].data.length > 0"
-          :data="resourceChartData"
-          :options="resourceChartOptions"
-        />
-    </div>
+        <div class="chart-box">
+          <MonthlyChart
+            v-if="resourceChartData.datasets[0].data.length > 0"
+            :data="resourceChartData"
+            :options="resourceChartOptions"
+          />
+      </div>
+
+        <div class="chart-box">
+          <TypeDailyChart
+            v-if="typeDailyChartData.datasets.length > 0"
+            :data="typeDailyChartData"
+            :options="typeDailyChartOptions"
+          />
+        </div>
 
       
     </div>
@@ -66,10 +74,11 @@
   import StatusChart from '../components/StatusChart.vue'
   import MISCountCard from '../components/MISCountCard.vue'
   import MonthlyChart from '../components/MonthlyChart.vue'
+  import TypeDailyChart from '../components/TypeDailyChart.vue'
   import { ref, onMounted } from 'vue'
   /*import Sidebar from '../components/Sidebar.vue'*/
   export default {
-    components: { MISCountCard,StatusChart, MonthlyChart},
+    components: { MISCountCard,StatusChart, MonthlyChart,TypeDailyChart},
     data() {
     return {
       misCount: 0,
@@ -143,6 +152,33 @@
 
         },
 
+        typeDailyChartData: {
+            labels: [],
+            datasets: []
+        },
+        typeDailyChartOptions: {
+            responsive: true,
+            plugins: {
+              title: { display: true, text: 'Daily MIS Type Trend' },
+              legend: { display: true },
+            },
+            scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    precision: 0 // ✅ removes .0 decimals
+                  }
+                },
+                x: {
+                  ticks: {
+                    autoSkip: false,
+                    maxRotation: 0,
+                    minRotation: 0
+                  }
+                }
+}
+        },
+
         selectedMonth: 9,
           monthNames: [
             'January', 'February', 'March', 'April', 'May', 'June',
@@ -193,10 +229,58 @@
         return palette[i % palette.length] // cycle through palette
       })
 
-      this.resourceChartData.labels = labels
-      this.resourceChartData.datasets[0].data = values
-      this.resourceChartData.datasets[0].backgroundColor = colors
-    }
+      this.resourceChartData = {
+      labels,
+      datasets: [{
+        label: 'MIS Records by Resource',
+        data: values,
+        backgroundColor: colors
+          }]
+        }
+    },
+    async fetchTypeDailyChart(month) {
+        const res = await axios.get(`http://127.0.0.1:8000/mis/type_daily_trend?month=${month}`)
+        const data = res.data
+
+        // Step 1: Collect all unique dates
+        const allDatesSet = new Set()
+        Object.values(data).forEach(dateMap => {
+          Object.keys(dateMap).forEach(date => allDatesSet.add(date))
+        })
+
+        const rawDates = Array.from(allDatesSet).sort()
+
+        // Step 2: Format labels for display
+        const displayLabels = rawDates.map(dateStr => {
+          const parsed = Date.parse(dateStr)
+          return !isNaN(parsed)
+            ? new Date(parsed).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })
+            : dateStr
+        })
+
+        // Step 3: Build datasets per mis_type
+        const types = Object.keys(data)
+        const palette = ['#0d6efd', '#20c997', '#fd7e14', '#6f42c1', '#28a745', '#dc3545']
+
+        const datasets = types.map((type, i) => {
+          const dateMap = data[type]
+          return {
+            label: type,
+            data: rawDates.map(date => dateMap[date] || 0),
+            fill: true,
+            backgroundColor: palette[i % palette.length],
+            borderColor: palette[i % palette.length],
+            tension: 0.3
+          }
+        })
+
+        this.typeDailyChartData = {
+          labels: displayLabels,
+          datasets
+        }
+      }
+
+
 
 
 
@@ -205,6 +289,13 @@
     this.refreshMISCount();
     this.fetchMonthlyChart();
     this.fetchResourceChart(this.selectedMonth);
+    this.fetchTypeDailyChart(this.selectedMonth)
+  },
+  watch: {
+    selectedMonth(newMonth){
+      this.fetchResourceChart(newMonth)
+      this.fetchTypeDailyChart(newMonth)
+    }
   }
 }
 </script>
