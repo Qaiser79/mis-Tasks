@@ -23,7 +23,7 @@ export default {
 
 .content-area {
   flex: 1;
-  padding: 30px 40px;
+  padding: 10px 40px;
   background-color: #f8f9fa;
 }
 </style>

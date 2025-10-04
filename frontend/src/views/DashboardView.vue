@@ -1,9 +1,5 @@
 <template>
 <div class="page-container">
-    <header class="dashboard-header">
-      <h1>MIS Dashboard</h1>
-      <p>Track, manage, and update MIS records across departments in real time.</p>
-    </header>
 
     <section class="card-section">
       <h2 class="section-title">MIS Summary</h2>
@@ -20,13 +16,29 @@
       </div>
     </section>
 
-    <div class="chart-container">
+    <section class="chart-section">
+      <div class="title-selector-container">
+        <h2 class="section-title">MIS Analytics</h2>
+          <div class="month-selector-wrapper">
+            <div class="month-selector">
+                <label for="month">Select Month:</label>
+                  <select id="month" v-model="selectedMonth" >
+                    <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
+                      {{ name }}
+                    </option>
+                  </select>
+            </div>
+          </div>
+      </div>
+
+    <div class="chart-grid">
       <div class="chart-box">
         <StatusChart
             v-if="chartData.datasets[0].data.length > 0"
             :data="chartData"
             :options="chartOptions"
         />
+        <div v-else class="chart-placeholder">No data available</div>
         </div>
 
         <div class="chart-box">
@@ -35,15 +47,7 @@
         :data="monthlyChartData"
         :options="monthlyChartOptions"
         />
-      </div>
-
-      <div class="month-selector">
-          <label for="month">Select Month (default: September):</label>
-            <select id="month" v-model="selectedMonth" >
-              <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
-                {{ name }}
-              </option>
-            </select>
+        <div v-else class="chart-placeholder">No data available</div>
       </div>
 
 
@@ -53,6 +57,7 @@
             :data="resourceChartData"
             :options="resourceChartOptions"
           />
+          <div v-else class="chart-placeholder">No data available</div>
       </div>
 
         <div class="chart-box">
@@ -61,11 +66,12 @@
             :data="typeDailyChartData"
             :options="typeDailyChartOptions"
           />
+          <div v-else class="chart-placeholder">No data available</div>
         </div>
 
       
     </div>
-
+</section>
 
   </div>
 </template>
@@ -99,14 +105,24 @@
       },
         chartOptions: {
             responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+              padding: 10 // Add padding to prevent clipping
+            },
                 plugins: {
                     legend: {
-                    position: 'right'
-                    },
-                    title: {
-                    display: true,
-                    text: 'MIS Status Breakdown'
-                    }
+                      position: 'right',
+                      labels: {
+                          boxWidth: 20, // Smaller legend boxes
+                          font: { size: 10 }, // Smaller legend text
+                          padding: 10
+                      }
+
+                      },
+                      title: {
+                      display: true,
+                      text: 'MIS Status Breakdown'
+                      }
                 }
         },
 
@@ -135,7 +151,7 @@
             }]
         },
 
-        resourceChartOption: {
+        resourceChartOptions: {
           responsive: true,
               plugins: {
                 legend: { display: false },
@@ -300,100 +316,208 @@
 }
 </script>
 
+```vue
 <style scoped>
-
 .page-container {
-  width: 100%;
-  padding: 30px 60px;
+  max-width: 90vw;
+  margin: 0 auto;
+  padding: 10px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e293b; /* slate-800 */
+color: #f1f5f9; /* slate-100 */
 }
 
-.dashboard-header {
-  text-align: center;
-  margin-bottom: 30px;
-}
 
-.dashboard-header h1 {
-  font-size: 2rem;
-  margin-bottom: 10px;
-  color: #343a40;
-}
-
-.dashboard-header p {
-  font-size: 1rem;
-  color: #6c757d;
-}
 
 .section-title {
-  font-size: 1.4rem;
-  margin-bottom: 16px;
-  color: #343a40;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0;
+  color: #ffffff;
 }
 
 .card-section {
-  margin-bottom: 40px;
-  padding: 0 20px;
+  margin-bottom: 12px;
 }
-
-
-
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
-
-
-.chart-container {
+.card-placeholder {
+  grid-column: span 4;
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  justify-content: flex-start;
-  margin-bottom: 40px;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  font-size: 0.75rem;
+  border-radius: 6px;
 }
 
+.chart-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title-selector-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.month-selector-wrapper {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* Center in full container width */
+  display: flex;
+  justify-content: center;
+  width: auto; /* Fit content */
+}
+
+.month-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 180px; /* Prevent overlap with section-title (~120px for "MIS Analytics") */
+}
+
+.month-selector label {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.month-selector select {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  background-color: #ffffff;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #1a202c;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-width: 250px;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="#1a202c" d="M2 4l4 4 4-4H2z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
+.month-selector select:hover {
+  border-color: #3b82f6;
+}
+
+.month-selector select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+  gap: 12px;
+  max-width: 100%;
+  margin: 0;
+}
 
 .chart-box {
-  flex: 1 1 500px;         /* Wider base width */
-  max-width: 600px;        /* Cap the width */
-  height: 240px;           /* Slightly taller to fit labels */
   background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  padding: 16px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .chart-box canvas {
-  max-height: 180px;
-  width: 100% !important;
-  height: auto !important;
+  max-width: 100%;
+  max-height: 250px;
+  background-color: #f9fafb; /* light gray */
 }
 
+.chart-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
 
-.month-selector {
-  margin-bottom: 20px;
+.chart-placeholder {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 1rem;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.chart-box {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.month-selector select {
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-
-
-@media (max-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 1280px) {
+  .page-container {
+    max-width: 95vw;
+  }
+  .dashboard-grid, .chart-grid, .title-selector-container {
+    max-width: 100%;
+  }
+  .card-placeholder {
+    grid-column: span 2;
   }
 }
 
+@media (max-width: 768px) {
+  .title-selector-container {
+    position: static; /* Disable absolute positioning */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .month-selector-wrapper {
+    position: static; /* Normal flow */
+    transform: none;
+    width: 100%;
+  }
+  .month-selector {
+    padding-left: 0; /* Remove padding */
+    width: 100%;
+  }
+  .month-selector select {
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 8px;
+  }
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+  .section-title {
+    font-size: 1rem;
+  }
+  .month-selector label, .month-selector select {
+    font-size: 0.875rem;
+  }
+  .month-selector select {
+    padding: 6px 12px;
+    min-width: 100%;
+  }
+}
 </style>
