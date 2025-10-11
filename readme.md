@@ -6,7 +6,7 @@ A full-stack MIS dashboard built with **FastAPI** (backend) and **Vue.js** (fron
 
 - **Frontend**: Vue.js + Vite
 - **Backend**: FastAPI + SQLAlchemy
-- **Database**: SQLite / PostgreSQL
+- **Database**: SQL Server
 - **Styling**: Scoped CSS
 
 ## 🚀 Features
@@ -16,5 +16,6 @@ A full-stack MIS dashboard built with **FastAPI** (backend) and **Vue.js** (fron
 - Dynamic resource dropdown from backend
 - Paginated table view
 - Responsive layout and scoped styling
+
 
 
