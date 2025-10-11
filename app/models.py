@@ -1,15 +1,21 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey,Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
 from pydantic import BaseModel
 from typing import Optional
 from datetime import date
+import enum
 
+class TeamRole(enum.Enum):
+    ADMIN = "admin"
+    EDITOR = "editor"
 
 class Team(Base):
     __tablename__="team"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(50))
+    role = Column(String(20), nullable=False) 
+    password=Column(String(50))
     mis_entries= relationship("MIS_Table", back_populates="resource_team")
 
 class MIS_Table(Base):

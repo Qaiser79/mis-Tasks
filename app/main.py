@@ -1,13 +1,15 @@
-from http.client import HTTPException
+from app.models import Team, TeamRole  # assuming TeamRole is defined as an Enum
+
 from app.database import SessionLocal
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends, Path
+from fastapi import FastAPI, Depends, Path, HTTPException, Query
 from sqlalchemy import text, extract
 from app import crud, schemas,models
 from sqlalchemy import func
 from collections import defaultdict
-
+from passlib.context import CryptContext
+from typing import Optional
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -43,13 +45,42 @@ def get_db():
     finally:
         db.close()
 
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@app.post("/login")
+def login(data: schemas.Loginrequest,db: Session=Depends(get_db)):
+    user = db.query(models.Team).filter(models.Team.name == data.username).first()
+    if not user or user.password != data.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"team_id": user.id, "role": user.role}
+
+def get_team_by_id(team_id: int= Query(...), db: Session=Depends(get_db))-> models.Team:
+    team= db.query(models.Team).filter(models.Team.id==team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    return team
+
+def require_manager(team: models.Team=Depends(get_team_by_id)):
+    if team.role!="admin":
+        raise HTTPException(status_code=403, detail="Admins only")
+    return team
+def require_editor_or_manager(team: models.Team=Depends(get_team_by_id)):
+    if team.role not in ["admin", "editor"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    return team
+
 # ✅ Read endpoint
 @app.get("/mis", response_model=list[schemas.MIS])
-def read_mis_entries(db: Session = Depends(get_db)):
+def read_mis_entries(team_id: int = Query(...), db: Session = Depends(get_db)):
+    team = db.query(models.Team).filter(models.Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    if team.role not in ["admin", "editor"]:
+        raise HTTPException(status_code=403, detail="Access denied")
     return crud.get_all_mis(db)
 
 @app.post("/mis", response_model=schemas.MIS)
-def create_mis_entry(mis: schemas.MISCreate, db: Session = Depends(get_db)):
+def create_mis_entry(mis: schemas.MISCreate, db: Session = Depends(get_db), team:models.Team=Depends(require_manager)):
     return crud.create_mis(db, mis)
 
 @app.get("/mis/count")
@@ -58,31 +89,46 @@ def get_mis_count(db: Session = Depends(get_db)):
     return {"total_mis": count}
 
 @app.get("/mis/all")
-def get_all_mis_records(db: Session=Depends(get_db)):
-    records= db.query(models.MIS_Table).all()
+def get_all_mis_records(team_id: Optional[int]=Query(None),db: Session=Depends(get_db)):
+    query=db.query(models.MIS_Table)
+    if team_id is not None:
+        query=query.filter(models.MIS_Table.resource==team_id)
+    records= query.all()
     return {'records': records}
 
 @app.get("/mis/status-count")
-def get_status_count(status: str, db: Session= Depends(get_db)):
-    count = db.query(models.MIS_Table).filter(
+def get_status_count(status: str,team_id: Optional[int] = Query(None), db: Session= Depends(get_db)):
+    query = db.query(models.MIS_Table).filter(
         func.lower(func.trim(models.MIS_Table.mis_status)) == status.strip().lower()
-    ).count()
+    )
+    if team_id is not None:
+        query=query.filter(models.MIS_Table.resource == team_id)
+    count=query.count()
+
     return {"status": status, "count":count}
 
 @app.put("/mis/update/{mis_id}")
-def update_mis_recor(mis_id: int, updated_data: schemas.MISUpdateSchema, db: Session=Depends(get_db)):
+def update_mis_recor(mis_id: int, updated_data: schemas.MISUpdateSchema, db: Session=Depends(get_db), team: models.Team = Depends(get_team_by_id)):
     record=db.query(models.MIS_Table).filter(models.MIS_Table.mis_no==mis_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
-    
-    for key, value in updated_data.dict(exclude_unset=True).items():
+    updates= updated_data.dict(exclude_unset=True)
+    if team.role=='editor':
+        allowed_fields={"mis_status","completed_date","last_uat_date" ,"comment"}
+        for field in updates:
+            if field not in allowed_fields:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Editors cannot update '{field}'"
+                )
+    for key, value in updates.items():
         setattr(record,key,value)
     db.commit()
     db.refresh(record)
     return {"message": "Record updated successfully", "record": record}
 
 @app.delete("/mis/delete/{mis_id}")
-def delete_mis_record(mis_id: int= Path(...), db: Session=Depends(get_db)):
+def delete_mis_record(mis_id: int= Path(...), db: Session=Depends(get_db), team: models.Team = Depends(require_manager)):
     record= db.query(models.MIS_Table).filter(models.MIS_Table.mis_no==mis_id).first()
     if not record:
         raise HTTPException(status_code=404, detail="Record not found")
@@ -148,3 +194,12 @@ def get_type_daily_trend(month: int, db: Session=Depends(get_db)):
             daily_trend[mis_type][day_str]+=1
 
     return daily_trend
+
+@app.get("/mis/recent/{team_id}")
+def get_recent_mis(team_id: int, db: Session=Depends(get_db)):
+    records=(db.query(models.MIS_Table)
+             .filter(models.MIS_Table.resource==team_id)
+             .limit(5)
+             .all()
+             )
+    return {"records": records or []}

@@ -8,37 +8,37 @@
             <form @submit.prevent="submitForm" class="mis-form">
                 <h3>{{ editMode ? 'Edit MIS Record' : 'Create MIS Record' }}</h3>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="mis_no">MIS No</label>
                     <input id="mis_no" v-model="form.mis_no" type="number" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="mis_type">MIS Type</label>
                     <input id="mis_type" v-model="form.mis_type" type="text" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="department">Department</label>
                     <input id="department" v-model="form.department" type="text" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="arrival_date">Arrival Date</label>
                     <input id="arrival_date" v-model="form.arrival_date" type="date" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin' || userRole === 'editor'">
                     <label for="last_uat_date">Last UAT Date</label>
                     <input id="last_uat_date" v-model="form.last_uat_date" type="date" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="mis_description">MIS Description</label>
                     <textarea id="mis_description" v-model="form.mis_description"></textarea>
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin' || userRole === 'editor'">
                     <label for="mis_status">MIS Status</label>
                     <select id="mis_status" v-model="form.mis_status">
                     <option value="">Select Status</option>
@@ -51,27 +51,27 @@
                     </select>
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin' || userRole === 'editor'">
                     <label for="comment">Comment</label>
                     <textarea id="comment" v-model="form.comment"></textarea>
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin' || userRole === 'editor'">
                     <label for="completed_date">Completed Date</label>
                     <input id="completed_date" v-model="form.completed_date" type="date" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="assigned_date">Assigned Date</label>
                     <input id="assigned_date" v-model="form.assigned_date" type="date" />
                 </div>
             
-                <div class="form-row">
-                    <label for="target_date">Target Date</label>
+                <div class="form-row" v-if="userRole === 'admin'">
+                    <label for="target_date" >Target Date</label>
                     <input id="target_date" v-model="form.target_date" type="date" />
                 </div>
             
-                <div class="form-row">
+                <div class="form-row" v-if="userRole === 'admin'">
                     <label for="resource">Resource</label>
                         <select id="resource" v-model="form.resource">
                             <option value="">Select Resource</option>
@@ -118,9 +118,35 @@
         methods: {
             submitForm() {
                 console.log("Form submitted")
-
+                let payload=[]
                 if (this.editMode) {
-                    this.$emit('mis-updated', this.form)  // send full form data to App.vue
+                    
+                    if (this.userRole==='editor'){
+                        payload={
+                            mis_status: this.form.mis_status,
+                            completed_date: this.form.completed_date,
+                            last_uat_date: this.form.last_uat_date,
+                            comment: this.form.comment
+                        }
+                    }else if (this.userRole === 'admin') {
+                            payload = {
+                                mis_type: this.form.mis_type,
+                                department: this.form.department,
+                                arrival_date: this.form.arrival_date,
+                                last_uat_date: this.form.last_uat_date,
+                                mis_description: this.form.mis_description,
+                                mis_status: this.form.mis_status,
+                                comment: this.form.comment,
+                                completed_date: this.form.completed_date,
+                                assigned_date: this.form.assigned_date,
+                                target_date: this.form.target_date,
+                                resource: this.form.resource
+                            }
+                            }
+                        this.$emit('mis-updated', {
+                        mis_no: this.form.mis_no,  // pass separately
+                        payload
+                        })
                 } else {
                     axios.post('http://127.0.0.1:8000/mis', this.form)
                     .then(response => {
@@ -167,7 +193,8 @@
         props:{
             editMode: Boolean,
             editRecord: Object,
-            visible: Boolean
+            visible: Boolean,
+            userRole: String
         },
         watch: {
             editMode: {

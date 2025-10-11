@@ -7,6 +7,9 @@
       <section class="table-section">
       <div class="table-header">
         <h2 class="section-title">MIS Records</h2>
+        <p v-if="currentUser.role === 'editor'" class="info-text">
+          Showing only MIS records assigned to you.
+        </p>
         <div class="tooltip-container">
           <button class="create-btn" @click="openCreateForm">
             <i class="fas fa-plus-circle"></i> Create New MIS Record
@@ -63,6 +66,7 @@
         :editMode="editMode"
         :editRecord="editRecord"
         :visible="showForm"
+        :userRole="currentUser.role"
         @mis-updated="submitUpdate"
         @mis-submitted="handleCreate"
         @close="handleCloseForm"
@@ -80,6 +84,7 @@
     components: { MISTable, MISForm },
     data() {
       return {
+        currentUser: JSON.parse(localStorage.getItem('currentUser')) || null,
         records: [],
         resources: [],
         selectedStatus: '',
@@ -106,21 +111,45 @@
 
     async fetchMISRecords() {
         try {
-        const res = await axios.get('http://127.0.0.1:8000/mis/all')
-        this.misList = Array.isArray(res.data) ? res.data : res.data.records || []
+          const teamId = parseInt(this.currentUser.team_id)
+          const endpoint =
+            this.currentUser.role==='admin'
+            ? 'http://127.0.0.1:8000/mis/all'
+            : `http://127.0.0.1:8000/mis/all?team_id=${teamId}`
+        const res = await axios.get(endpoint)
+        this.misList = Array.isArray(res.data.records) ? res.data.records : []
         } catch (error) {
             console.error('Failed to fetch MIS records:', error)
             this.misList = [] 
         }
     },
 
-    async submitUpdate(updatedData){
-      await axios.put(`http://127.0.0.1:8000/mis/update/${updatedData.mis_no}`, updatedData)
-      this.editMode=false
-      this.editRecord=null
-      this.showForm = false
-      await this.fetchMISRecords()
-      /*this.refreshMISCount()*/
+    async submitUpdate({ mis_no, payload }) {
+        try {
+          await axios.put(`http://127.0.0.1:8000/mis/update/${mis_no}`, payload, {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            params: {
+              team_id: this.currentUser.team_id
+            }
+          })
+          this.editMode = false
+          this.editRecord = null
+          this.showForm = false
+          await this.fetchMISRecords()
+        } catch (error) {
+          console.error('❌ Update failed:', error.response?.data || error.message)
+          const detail = error.response?.data?.detail
+
+          if (Array.isArray(detail)) {
+            // FastAPI validation errors
+            const messages = detail.map(d => `${d.loc?.join('.')}: ${d.msg}`).join('\n')
+            alert('Update failed:\n' + messages)
+          } else {
+            alert('Update failed: ' + (detail || 'Unknown error'))
+          }
+        }
     },
 
     async handleCreate() {

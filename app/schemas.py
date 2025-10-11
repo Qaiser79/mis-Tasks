@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator,Field
 from datetime import date, datetime
 from typing import Optional
 
@@ -52,17 +52,19 @@ class MISCreate(BaseModel):
     resource: Optional[int]
 
 class MISUpdateSchema(BaseModel):
-    mis_type: Optional[str]
-    department: Optional[str]
-    arrival_date: Optional[str]
-    last_uat_date: Optional[str]
-    mis_description: Optional[str]
-    mis_status: Optional[str]
-    comment: Optional[str]
-    completed_date: Optional[str]
-    assigned_date: Optional[str]
-    target_date: Optional[str]
-    resource: Optional[int]
+    mis_type: Optional[str]= Field(default=None)
+    department: Optional[str]= Field(default=None)
+    arrival_date: Optional[str]= Field(default=None)
+    last_uat_date: Optional[str]= Field(default=None)
+    mis_description: Optional[str]= Field(default=None)
+    mis_status: Optional[str]= Field(default=None)
+    comment: Optional[str]= Field(default=None)
+    completed_date: Optional[str]= Field(default=None)
+    assigned_date: Optional[str]= Field(default=None)
+    target_date: Optional[str]= Field(default=None)
+    resource: Optional[int]= Field(default=None)
+
+    
 
 class TeamOut(BaseModel):
     id: int
@@ -70,6 +72,10 @@ class TeamOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+class Loginrequest(BaseModel):
+    username: str
+    password: str
 
 class Config:
     orm_mode = True
